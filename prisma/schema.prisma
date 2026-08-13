@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int          @id @default(autoincrement())
+  email         String       @unique
+  passwordHash  String?
+  role          Role         @default(USER)
+  apiKey        String?      @unique
+  isActive      Boolean      @default(true)
+  balance       Float        @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  subscriptions Subscription[]
+  pingLogs      PingLog[]
+
+  @@map("users")
+}
+
+model Node {
+  id          Int      @id @default(autoincrement())
+  name        String
+  host        String
+  port        Int      @default(443)
+  protocol    String   @default("vless")
+  location    String
+  privateKey  String   @unique
+  publicKey   String
+  shortId     String
+  isActive    Boolean  @default(true)
+  weight      Int      @default(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  groups      AutoNodeGroupNode[]
+  pingLogs    PingLog[]
+
+  @@map("nodes")
+}
+
+model Subscription {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique
+  userId      Int
+  nodeGroupId Int?
+  limitGb     Float     @default(0)
+  usedGb      Float     @default(0)
+  expireAt    DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id])
+  nodeGroup   AutoNodeGroup?  @relation(fields: [nodeGroupId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model AutoNodeGroup {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  description     String?
+  selectionMethod String   @default("lowest_ping")
+  checkInterval   Int      @default(300)
+  timeout         Int      @default(5)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  nodes           AutoNodeGroupNode[]
+  subscriptions   Subscription[]
+
+  @@map("auto_node_groups")
+}
+
+model AutoNodeGroupNode {
+  groupId  Int
+  nodeId   Int
+  priority Int @default(0)
+  weight   Int @default(100)
+
+  group    AutoNodeGroup @relation(fields: [groupId], references: [id])
+  node     Node          @relation(fields: [nodeId], references: [id])
+
+  @@id([groupId, nodeId])
+  @@map("auto_node_group_nodes")
+}
+
+model PingLog {
+  id        Int      @id @default(autoincrement())
+  nodeId    Int
+  userId    Int?
+  pingMs    Int
+  status    String   @default("success")
+  createdAt DateTime @default(now())
+
+  node      Node     @relation(fields: [nodeId], references: [id])
+
+  @@map("ping_logs")
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  category    String
+  description String?
+  isEncrypted Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
