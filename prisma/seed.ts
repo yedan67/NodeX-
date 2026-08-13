@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -15,7 +15,7 @@ async function main() {
     create: {
       email: 'admin@nodex.local',
       passwordHash: adminPassword,
-      role: 'ADMIN',
+      role: Role.ADMIN,
       isActive: true,
       balance: 0,
     },
